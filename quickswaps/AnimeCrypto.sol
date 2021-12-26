@@ -2243,7 +2243,7 @@ contract NODERewardManagement {
 
 pragma solidity ^0.8.0;
 
-contract PalliB is ERC20, Ownable, PaymentSplitter {
+contract ThorV2 is ERC20, Ownable, PaymentSplitter {
     using SafeMath for uint256;
 
     NODERewardManagement public nodeRewardManager;
@@ -2300,10 +2300,10 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
         uint256[] memory fees,
         uint256 swapAmount,
         address uniV2Router
-    ) ERC20("Palli v4", "PALLI5") PaymentSplitter(payees, shares) {
+    ) ERC20("THOR v2", "THOR") PaymentSplitter(payees, shares) {
 
-        futurUsePool = addresses[4]; /// 0xf65e3c7bcefffe68746c8ff610ac0b1354d0e43f // team wallet 
-        distributionPool = addresses[5]; // 0x843b7c183165ab513d7c5b443d8ed7e5169de0e4 
+        futurUsePool = addresses[4]; /// 0xf65e3c7bcefffe68746c8ff610ac0b1354d0e43f
+        distributionPool = addresses[5]; // 0x843b7c183165ab513d7c5b443d8ed7e5169de0e4
 
         require(futurUsePool != address(0) && distributionPool != address(0), "FUTUR & REWARD ADDRESS CANNOT BE ZERO");
 
@@ -2473,7 +2473,7 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
     function swapAndSendToFee(address destination, uint256 tokens) private {
         uint256 initialETHBalance = address(this).balance;
         emit PrintInt(initialETHBalance);
-        swapTokensForEth(tokens);
+        // swapTokensForEth(tokens);
         uint256 newBalance = (address(this).balance).sub(initialETHBalance);
         emit PrintInt(newBalance);
         payable(destination).transfer(newBalance);
@@ -2502,21 +2502,21 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
 
         _approve(address(this), address(uniswapV2Router), tokenAmount);
 
-        // uniswapV2Router.swapExactTokensForETH(
-        //     tokenAmount,
-        //     0, // accept any amount of ETH
-        //     path,
-        //     address(this),
-        //     block.timestamp
-        // );
-
-        uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+        uniswapV2Router.swapExactTokensForETH(
             tokenAmount,
             0, // accept any amount of ETH
             path,
             address(this),
             block.timestamp
         );
+
+        // uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+        //     tokenAmount,
+        //     0, // accept any amount of ETH
+        //     path,
+        //     address(this),
+        //     block.timestamp
+        // );
 
         // uniswapV2Router.swapExactTokensForAVAXSupportingFeeOnTransferTokens(
         //     tokenAmount,
@@ -2619,8 +2619,7 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
         // cashoutFee = fees[3]; // 10
         // 18
         if (
-            swapAmountOk 
-            &&
+            swapAmountOk &&
             swapLiquify &&
             !swapping &&
             sender != owner() &&
@@ -2630,43 +2629,40 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
             swapping = true;
 
             uint256 futurTokens = contractTokenBalance.mul(futurFee).div(100);
-            emit PrintInt(futurTokens); // 200000000000000000
+            emit PrintInt(futurTokens);
 
             swapAndSendToFee(futurUsePool, futurTokens);
             
             
-            ////// ( 100 * 60 ) / 100 = 60
-            uint256 rewardsPoolTokens = contractTokenBalance
-            .mul(rewardsFee)
-            .div(100);
-            emit PrintInt(rewardsPoolTokens); // 6000000000000000000
-            ///// ( 60 * 5) / 100 = 3
-            uint256 rewardsTokenstoSwap = rewardsPoolTokens.mul(rwSwap).div(
-                100
-            );
-            emit PrintInt(rewardsTokenstoSwap); // 300000000000000000
+            // ( 100 * 60 ) / 100 = 60
+            // uint256 rewardsPoolTokens = contractTokenBalance
+            // .mul(rewardsFee)
+            // .div(100);
+            // // ( 60 * 5) / 100 = 3
+            // uint256 rewardsTokenstoSwap = rewardsPoolTokens.mul(rwSwap).div(
+            //     100
+            // );
 
-            swapAndSendToFee(distributionPool, rewardsTokenstoSwap);
+            // swapAndSendToFee(distributionPool, rewardsTokenstoSwap);
 
 
-            super._transfer(
-                address(this),
-                distributionPool,
-                rewardsPoolTokens.sub(rewardsTokenstoSwap)
-            ); // 5700000000000000000
+            // super._transfer(
+            //     address(this),
+            //     distributionPool,
+            //     rewardsPoolTokens.sub(rewardsTokenstoSwap)
+            // );
 
-            uint256 swapTokens = contractTokenBalance.mul(liquidityPoolFee).div(
-                100
-            );
-            emit PrintInt(swapTokens);
+            // uint256 swapTokens = contractTokenBalance.mul(liquidityPoolFee).div(
+            //     100
+            // );
 
-            swapAndLiquify(swapTokens);
+            // swapAndLiquify(swapTokens);
 
-            swapTokensForEth(balanceOf(address(this)));
+            // swapTokensForEth(balanceOf(address(this)));
 
             swapping = false;
         }
-        super._transfer(sender, address(this), nodePrice); //10000000000000000000
+        super._transfer(sender, address(this), nodePrice);
         nodeRewardManager.createNode(sender, name);
     }
 

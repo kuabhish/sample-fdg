@@ -607,15 +607,6 @@ interface IJoeRouter01 {
         uint256 liquidity
     );
 
-    function addLiquidityETH(
-        address token,
-        uint amountTokenDesired,
-        uint amountTokenMin,
-        uint amountETHMin,
-        address to,
-        uint deadline
-    ) external payable returns (uint amountToken, uint amountETH, uint liquidity);
-
     function removeLiquidity(
         address tokenA,
         address tokenB,
@@ -779,26 +770,6 @@ interface IJoeRouter02 is IJoeRouter01 {
         address to,
         uint256 deadline
     ) external;
-
-    function swapExactTokensForETHSupportingFeeOnTransferTokens(
-        uint amountIn,
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external;
-
-    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
-        external
-        payable
-        returns (uint[] memory amounts);
-
-    function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
-        external
-        returns (uint[] memory amounts);
-    function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
-        external
-        returns (uint[] memory amounts);
 }
 
 
@@ -1657,11 +1628,9 @@ contract PaymentSplitter is Context {
      * https://solidity.readthedocs.io/en/latest/contracts.html#fallback-function[fallback
      * functions].
      */
-    // receive() external payable virtual {
-    //     emit PaymentReceived(_msgSender(), msg.value);
-    // }
-    // important to receive ETH
-//   receive() payable external {}
+    receive() external payable virtual {
+        emit PaymentReceived(_msgSender(), msg.value);
+    }
 
     /**
      * @dev Getter for the total shares held by payees.
@@ -2243,7 +2212,7 @@ contract NODERewardManagement {
 
 pragma solidity ^0.8.0;
 
-contract PalliB is ERC20, Ownable, PaymentSplitter {
+contract ThorV2 is ERC20, Ownable, PaymentSplitter {
     using SafeMath for uint256;
 
     NODERewardManagement public nodeRewardManager;
@@ -2300,10 +2269,10 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
         uint256[] memory fees,
         uint256 swapAmount,
         address uniV2Router
-    ) ERC20("Palli v4", "PALLI5") PaymentSplitter(payees, shares) {
+    ) ERC20("THOR v2", "THOR") PaymentSplitter(payees, shares) {
 
-        futurUsePool = addresses[4]; /// 0xf65e3c7bcefffe68746c8ff610ac0b1354d0e43f // team wallet 
-        distributionPool = addresses[5]; // 0x843b7c183165ab513d7c5b443d8ed7e5169de0e4 
+        futurUsePool = addresses[4];
+        distributionPool = addresses[5];
 
         require(futurUsePool != address(0) && distributionPool != address(0), "FUTUR & REWARD ADDRESS CANNOT BE ZERO");
 
@@ -2313,8 +2282,6 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
         emit PrintInt(122212);
         emit PrintAddress(_uniswapV2Router.factory());
         emit PrintAddress(_uniswapV2Router.WETH());
-        emit PrintInt(balanceOf(address(this)));
-        emit PrintInt(address(this).balance);
 
         // IJoeFactory ijf = IJoeFactory(_uniswapV2Router.factory());
         // emit PrintInt(9999);
@@ -2333,11 +2300,11 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
             fees[0] != 0 && fees[1] != 0 && fees[2] != 0 && fees[3] != 0,
             "CONSTR: Fees equal 0"
         );
-        futurFee = fees[0]; // 2
-        rewardsFee = fees[1]; // 60
-        liquidityPoolFee = fees[2]; // 10
-        cashoutFee = fees[3]; // 10
-        rwSwap = fees[4]; // 5
+        futurFee = fees[0]; //
+        rewardsFee = fees[1]; //
+        liquidityPoolFee = fees[2]; // 
+        cashoutFee = fees[3]; // 
+        rwSwap = fees[4]; // 
 
         totalFees = rewardsFee.add(liquidityPoolFee).add(futurFee);
 
@@ -2354,32 +2321,6 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
 
     function setNodeManagement(address nodeManagement) external onlyOwner {
         nodeRewardManager = NODERewardManagement(nodeManagement);
-    }
-
-    function getBalance(address value) public view returns (uint) {
-        return value.balance;
-    }
-
-        // receive() external payable virtual {
-    //     emit PaymentReceived(_msgSender(), msg.value);
-    // }
-    // important to receive ETH
-    receive() payable external {
-        emit PaymentReceived(_msgSender(), msg.value);
-    }
-
-    
-    function invest() external payable {
-        
-    }
-
-    function getbalance() public {
-        emit PrintInt(balanceOf(address(this)));
-        emit PrintInt(address(this).balance);
-    }
-
-    function sendETH(address seller, uint256 tokens) public payable {
-        payable(seller).transfer(tokens);
     }
 
     function updateUniswapV2Router(address newAddress) public onlyOwner {
@@ -2472,12 +2413,9 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
 
     function swapAndSendToFee(address destination, uint256 tokens) private {
         uint256 initialETHBalance = address(this).balance;
-        emit PrintInt(initialETHBalance);
         swapTokensForEth(tokens);
         uint256 newBalance = (address(this).balance).sub(initialETHBalance);
-        emit PrintInt(newBalance);
         payable(destination).transfer(newBalance);
-        // sendETH(destination, newBalance);
     }
 
     function swapAndLiquify(uint256 tokens) private {
@@ -2502,54 +2440,13 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
 
         _approve(address(this), address(uniswapV2Router), tokenAmount);
 
-        // uniswapV2Router.swapExactTokensForETH(
-        //     tokenAmount,
-        //     0, // accept any amount of ETH
-        //     path,
-        //     address(this),
-        //     block.timestamp
-        // );
-
-        uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+        uniswapV2Router.swapExactTokensForAVAXSupportingFeeOnTransferTokens( // change this function 
             tokenAmount,
             0, // accept any amount of ETH
             path,
             address(this),
             block.timestamp
         );
-
-        // uniswapV2Router.swapExactTokensForAVAXSupportingFeeOnTransferTokens(
-        //     tokenAmount,
-        //     0, // accept any amount of ETH
-        //     path,
-        //     address(this),
-        //     block.timestamp
-        // );
-    }
-
-    function swapTokensForEthRS(uint256 tokenAmount) public payable {
-        address[] memory path = new address[](2);
-        path[0] = address(this);
-        path[1] = uniswapV2Router.WETH();
-
-        _approve(address(this), address(uniswapV2Router), tokenAmount);
-
-        uniswapV2Router.swapExactTokensForETH(
-            tokenAmount,
-            0, // accept any amount of ETH
-            path,
-            address(this),
-            block.timestamp
-        );
-
-
-        // uniswapV2Router.swapExactTokensForETHSupportingFeeOnTransferTokens(
-        //     tokenAmount,
-        //     0, // accept any amount of ETH
-        //     path,
-        //     address(this),
-        //     block.timestamp
-        // );
     }
 
     function addLiquidity(uint256 tokenAmount, uint256 ethAmount) private {
@@ -2557,30 +2454,7 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
         _approve(address(this), address(uniswapV2Router), tokenAmount);
 
         // add the liquidity
-        // uniswapV2Router.addLiquidityAVAX{value: ethAmount}(
-        //     address(this),
-        //     tokenAmount,
-        //     0, // slippage is unavoidable
-        //     0, // slippage is unavoidable
-        //     address(0),
-        //     block.timestamp
-        // );
-
-        uniswapV2Router.addLiquidityETH{value: ethAmount}(
-            address(this),
-            tokenAmount,
-            0, // slippage is unavoidable
-            0, // slippage is unavoidable
-            address(0),
-            block.timestamp
-        );
-    }
-
-    function addLiquidityRS(uint256 tokenAmount, uint256 ethAmount) public payable {
-        // approve token transfer to cover all possible scenarios
-        _approve(address(this), address(uniswapV2Router), tokenAmount);
-
-        uniswapV2Router.addLiquidityETH{value: ethAmount}(
+        uniswapV2Router.addLiquidityAVAX{value: ethAmount}(
             address(this),
             tokenAmount,
             0, // slippage is unavoidable
@@ -2612,53 +2486,37 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
         );
         uint256 contractTokenBalance = balanceOf(address(this));
         bool swapAmountOk = contractTokenBalance >= swapTokensAmount;
-
-        // futurFee = fees[0]; // 2
-        // rewardsFee = fees[1]; // 60
-        // liquidityPoolFee = fees[2]; // 10
-        // cashoutFee = fees[3]; // 10
-        // 18
         if (
-            swapAmountOk 
-            &&
+            swapAmountOk &&
             swapLiquify &&
             !swapping &&
             sender != owner() &&
             !automatedMarketMakerPairs[sender]
         ) {
-            emit PrintInt(12121212121212);
             swapping = true;
 
             uint256 futurTokens = contractTokenBalance.mul(futurFee).div(100);
-            emit PrintInt(futurTokens); // 200000000000000000
 
             swapAndSendToFee(futurUsePool, futurTokens);
-            
-            
-            ////// ( 100 * 60 ) / 100 = 60
+
             uint256 rewardsPoolTokens = contractTokenBalance
             .mul(rewardsFee)
             .div(100);
-            emit PrintInt(rewardsPoolTokens); // 6000000000000000000
-            ///// ( 60 * 5) / 100 = 3
+
             uint256 rewardsTokenstoSwap = rewardsPoolTokens.mul(rwSwap).div(
                 100
             );
-            emit PrintInt(rewardsTokenstoSwap); // 300000000000000000
 
             swapAndSendToFee(distributionPool, rewardsTokenstoSwap);
-
-
             super._transfer(
                 address(this),
                 distributionPool,
                 rewardsPoolTokens.sub(rewardsTokenstoSwap)
-            ); // 5700000000000000000
+            );
 
             uint256 swapTokens = contractTokenBalance.mul(liquidityPoolFee).div(
                 100
             );
-            emit PrintInt(swapTokens);
 
             swapAndLiquify(swapTokens);
 
@@ -2666,7 +2524,7 @@ contract PalliB is ERC20, Ownable, PaymentSplitter {
 
             swapping = false;
         }
-        super._transfer(sender, address(this), nodePrice); //10000000000000000000
+        super._transfer(sender, address(this), nodePrice);
         nodeRewardManager.createNode(sender, name);
     }
 
